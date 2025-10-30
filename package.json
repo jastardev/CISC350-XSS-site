@@ -1,0 +1,22 @@
+{
+  "name": "html-actions-server",
+  "version": "1.0.0",
+  "description": "Express server with SQLite database for teaching injection and XSS basics",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
+    "init-db": "node init-db.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "sqlite3": "^5.1.6",
+    "express-session": "^1.17.3",
+    "bcryptjs": "^2.4.3",
+    "cookie-parser": "^1.4.6",
+    "jsonwebtoken": "^9.0.2"
+  },
+  "keywords": ["express", "sqlite", "security", "education"],
+  "author": "",
+  "license": "MIT"
+}

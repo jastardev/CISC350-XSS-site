@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TechStore - Your Tech Destination</title>
+    <link rel="stylesheet" href="/styles.css">
+    <script src="/product-operations.js"></script>
+    <!-- SERVER_RENDERED_FLAG -->
+    <!-- CSP removed for XSS lab - allows all inline scripts -->
+</head>
+<body>
+    <header>
+        <h1>TechStore</h1>
+        <p>Your one-stop shop for the latest technology</p>
+        <nav style="margin-top: 15px;">
+            <a href="/login" id="loginLink" style="margin-right: 15px; padding: 8px 16px; background: #007bff; color: white; text-decoration: none; border-radius: 4px;">Login</a>
+            <a href="/dashboard" id="dashboardLink" style="padding: 8px 16px; background: #28a745; color: white; text-decoration: none; border-radius: 4px;">Dashboard</a>
+            <button id="logoutBtn" onclick="logout()" style="margin-left: 15px; padding: 8px 16px; background: #dc3545; color: white; border: none; border-radius: 4px; cursor: pointer; display: none;">Logout</button>
+        </nav>
+    </header>
+    
+    <main>
+        <div id="announcement" style="margin: 10px 0; padding: 10px; background: #fff3cd; border: 1px solid #ffe8a1; border-radius: 6px; display: none;"></div>
+        <h2>Featured Products</h2>
+        
+        <div class="search-container" style="margin: 20px 0; text-align: center;">
+            <input type="text" id="search-input" placeholder="Search products..." style="padding: 10px; width: 300px; border: 1px solid #ddd; border-radius: 4px;">
+            <button onclick="searchProducts(document.getElementById('search-input').value)" style="padding: 10px 20px; margin-left: 10px; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">Search</button>
+            <div id="search-status" style="margin-top: 10px; font-style: italic; color: #666;"><!-- SERVER_SEARCH_STATUS --></div>
+        </div>
+        
+        <section class="products" id="products-container">
+            <!-- SERVER_PRODUCTS -->
+        </section>
+        
+        <div class="add-product-form" style="margin: 40px 0; padding: 20px; background-color: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+            <h3>Add New Product</h3>
+            
+            <form id="product-form" onsubmit="addProduct(event)">
+                <div style="margin-bottom: 15px;">
+                    <label for="product-name" style="display: block; margin-bottom: 5px; font-weight: bold;">Product Name:</label>
+                    <input type="text" id="product-name" name="name" required style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                </div>
+                
+                <div style="margin-bottom: 15px;">
+                    <label for="product-description" style="display: block; margin-bottom: 5px; font-weight: bold;">Description:</label>
+                    <textarea id="product-description" name="description" required style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; height: 60px; resize: vertical;"></textarea>
+                </div>
+                
+                <div style="margin-bottom: 15px;">
+                    <label for="product-price" style="display: block; margin-bottom: 5px; font-weight: bold;">Price:</label>
+                    <input type="number" id="product-price" name="price" step="0.01" min="0" required style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                </div>
+                
+                <button type="submit" style="background-color: #28a745; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; font-size: 16px;">Add Product</button>
+            </form>
+            
+            <div id="form-status" style="margin-top: 15px; padding: 10px; border-radius: 4px; display: none;"></div>
+        </div>
+
+
+    </main>
+    
+    <footer>
+        <p>&copy; 2024 TechStore. All rights reserved.</p>
+    </footer>
+    
+    <script>
+        // INLINE JAVASCRIPT - This script runs directly in the HTML file
+        // This demonstrates inline JavaScript usage alongside external files
+        
+        // Array of different promotional messages
+        const bannerMessages = [
+            "Free shipping on orders over $100!",
+            "20% off all wireless headphones!",
+            "Buy 2 get 1 free on all cables!",
+            "New arrivals every week!",
+            "Sign up for our newsletter and get 10% off!"
+        ];
+        
+        let currentMessageIndex = 0;
+        let allProducts = [];
+        
+        // Function to load products from API
+        async function loadProducts() {
+            try {
+                const response = await fetch('/api/products');
+                allProducts = await response.json();
+                displayProducts(allProducts);
+            } catch (error) {
+                console.error('Error loading products:', error);
+                document.getElementById('products-container').innerHTML = '<p>Error loading products. Please try again later.</p>';
+            }
+        }
+        
+        // Function to display products (client-side rendering used for search/add flow)
+        // Note: Scripts in innerHTML are inert; initial page uses server-side rendering to execute
+        function displayProducts(products) {
+            const container = document.getElementById('products-container');
+            container.innerHTML = products.map(product => `
+                <article class="product" style="position: relative;">
+                    <button class="delete-btn" onclick="deleteProduct(${product.id})" style="
+                        position: absolute; 
+                        top: 8px; 
+                        right: 8px; 
+                        background: rgba(220, 53, 69, 0.8);
+                        color: white; 
+                        border: none; 
+                        border-radius: 50%; 
+                        width: 20px; 
+                        height: 20px; 
+                        cursor: pointer; 
+                        font-size: 12px; 
+                        font-weight: bold;
+                        line-height: 1;
+                        text-align: center;
+                        padding: 0;
+                        margin: 0;
+                        box-sizing: border-box;
+                        transition: all 0.2s ease;
+                        z-index: 10;
+                        opacity: 0.7;
+                    " onmouseover="this.style.opacity='1'; this.style.background='rgba(220, 53, 69, 1)'" onmouseout="this.style.opacity='0.7'; this.style.background='rgba(220, 53, 69, 0.8)'">×</button>
+                    <h3>${product.name}</h3>
+                    <p>${product.description}</p>
+                    <p><strong>Price: $${product.price}</strong></p>
+                    <button>Add to Cart</button>
+                </article>
+            `).join('');
+        }
+        
+        // Function to search products (intentionally vulnerable for teaching)
+        async function searchProducts(searchTerm) {
+            const statusDiv = document.getElementById('search-status');
+            
+            if (!searchTerm.trim()) {
+                statusDiv.textContent = '';
+                if (allProducts && allProducts.length > 0) {
+                    displayProducts(allProducts);
+                } else {
+                    // Force full reload so server renders the full product list
+                    window.location.replace('/');
+                }
+                return;
+            }
+            
+            // Update URL with search parameter (shows students the attack vector)
+            const url = new URL(window.location);
+            url.searchParams.set('search', searchTerm);
+            window.history.pushState({}, '', url);
+            
+            // Display the search term (intentionally vulnerable to XSS for teaching)
+            statusDiv.innerHTML = `You are searching for: ${searchTerm}`;
+            
+            try {
+                // Intentionally vulnerable - no URL encoding for XSS lab
+                const response = await fetch(`/api/products/search?q=${searchTerm}`);
+                const results = await response.json();
+                displayProducts(results);
+            } catch (error) {
+                console.error('Error searching products:', error);
+            }
+        }
+        
+        // Note: deleteProduct() and addProduct() functions are now in product-operations.js
+        // This demonstrates the separation of inline and external JavaScript
+        
+
+        // Check authentication status and update navigation
+        async function checkAuthStatus() {
+            try {
+                const response = await fetch('/auth/status');
+                if (response.ok) {
+                    const userData = await response.json();
+                    // User is logged in
+                    document.getElementById('loginLink').style.display = 'none';
+                    document.getElementById('logoutBtn').style.display = 'inline-block';
+                } else {
+                    // User is not logged in
+                    document.getElementById('loginLink').style.display = 'inline-block';
+                    document.getElementById('logoutBtn').style.display = 'none';
+                }
+            } catch (error) {
+                // User is not logged in
+                document.getElementById('loginLink').style.display = 'inline-block';
+                document.getElementById('logoutBtn').style.display = 'none';
+            }
+        }
+        
+        // Logout function
+        async function logout() {
+            try {
+                const response = await fetch('/auth/logout', {
+                    method: 'POST'
+                });
+                
+                if (response.ok) {
+                    // Update navigation
+                    document.getElementById('loginLink').style.display = 'inline-block';
+                    document.getElementById('logoutBtn').style.display = 'none';
+                    alert('Logged out successfully!');
+                } else {
+                    alert('Logout failed. Please try again.');
+                }
+            } catch (error) {
+                console.error('Logout error:', error);
+                alert('Logout failed. Please try again.');
+            }
+        }
+        
+        // Check for search query parameter on page load
+        function checkForSearchQuery() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const searchQuery = urlParams.get('search');
+            
+            if (searchQuery) {
+                // Pre-fill the search input
+                document.getElementById('search-input').value = searchQuery;
+                // Execute the search
+                searchProducts(searchQuery);
+            }
+        }
+
+        // Initialize the page
+        document.addEventListener('DOMContentLoaded', function() {
+            checkAuthStatus();
+            checkForSearchQuery();
+            renderAnnouncementFromHash();
+            if (!window.SERVER_RENDERED) {
+                loadProducts();
+            }
+        });
+    
+        // DOM-based XSS demo: renders hash parameter directly into the DOM
+        // Usage example: /#msg=<img src=x onerror="alert(document.cookie)">
+        function renderAnnouncementFromHash() {
+            const hash = window.location.hash || '';
+            const prefix = '#msg=';
+            if (hash.startsWith(prefix)) {
+                const raw = decodeURIComponent(hash.slice(prefix.length));
+                const banner = document.getElementById('announcement');
+                banner.style.display = 'block';
+                // Intentionally unsafe: injects attacker-controlled HTML directly
+                banner.innerHTML = raw;
+            } else {
+                const banner = document.getElementById('announcement');
+                if (banner) {
+                    banner.style.display = 'none';
+                    banner.innerHTML = '';
+                }
+            }
+        }
+
+        // Re-render the announcement when the URL hash changes (no full page reload)
+        window.addEventListener('hashchange', renderAnnouncementFromHash);
+    </script>
+</body>
+</html>
