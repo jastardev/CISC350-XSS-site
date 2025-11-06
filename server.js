@@ -111,7 +111,7 @@ app.post('/auth/login', async (req, res) => {
 
             // Set cookie to make token easy to steal/observe for the lab
             res.cookie(JWT_COOKIE_NAME, token, {
-                httpOnly: false, // deliberate for XSS lab
+                httpOnly: true, // deliberate for XSS lab
                 secure: false,
                 sameSite: 'lax',
                 maxAge: JWT_EXPIRY_SECONDS * 1000
@@ -424,6 +424,71 @@ app.get('/', (req, res) => {
             `).join('');
 
             let rendered = html.replace('<!-- SERVER_PRODUCTS -->', productsHtml);
+            rendered = rendered.replace('<!-- SERVER_RENDERED_FLAG -->', '<script>window.SERVER_RENDERED=true;</script>');
+            res.setHeader('Content-Type', 'text/html; charset=utf-8');
+            res.send(rendered);
+        });
+    });
+});
+
+// Serve home-new.html with server-side rendered search status and products
+app.get('/home-new.html', (req, res) => {
+    const templatePath = path.join(__dirname, 'home-new.html');
+    fs.readFile(templatePath, 'utf8', (readErr, html) => {
+        if (readErr) {
+            console.error('Error reading template:', readErr);
+            return res.status(500).send('Server error');
+        }
+
+        // Get search query parameter
+        const searchTerm = req.query.search || '';
+        
+        // Build search status HTML if search term exists
+        let searchStatusHtml = '';
+        if (searchTerm) {
+            // Intentionally vulnerable - no filtering for XSS lab
+            // This allows onload events to fire naturally when browser parses the HTML
+            searchStatusHtml = `You are searching for: ${searchTerm}`;
+        }
+        
+        // Load products from database
+        let query, params;
+        if (searchTerm) {
+            // Search products if search term exists
+            query = `SELECT * FROM products WHERE name LIKE ? OR description LIKE ?`;
+            const searchPattern = `%${searchTerm}%`;
+            params = [searchPattern, searchPattern];
+        } else {
+            // Load all products if no search term
+            query = `SELECT * FROM products`;
+            params = [];
+        }
+        
+        db.all(query, params, (err, rows) => {
+            if (err) {
+                console.error('Database error:', err);
+                return res.status(500).send('Database error');
+            }
+            
+            // Build products HTML with raw, unsanitized descriptions
+            const productsHtml = rows.map((product) => `
+                <article class="product" style="position: relative;">
+                    <button class="delete-btn" onclick="deleteProduct(${product.id})" style="
+                        position: absolute; top: 8px; right: 8px; background: rgba(220, 53, 69, 0.8); color: white;
+                        border: none; border-radius: 50%; width: 20px; height: 20px; cursor: pointer; font-size: 12px;
+                        font-weight: bold; line-height: 1; text-align: center; padding: 0; margin: 0; box-sizing: border-box;
+                        transition: all 0.2s ease; z-index: 10; opacity: 0.7;"
+                        onmouseover="this.style.opacity='1'; this.style.background='rgba(220, 53, 69, 1)'"
+                        onmouseout="this.style.opacity='0.7'; this.style.background='rgba(220, 53, 69, 0.8)'">×</button>
+                    <h3>${product.name}</h3>
+                    <p>${product.description}</p>
+                    <p><strong>Price: $${product.price}</strong></p>
+                    <button>Add to Cart</button>
+                </article>
+            `).join('');
+            
+            let rendered = html.replace('<!-- SERVER_SEARCH_STATUS -->', searchStatusHtml);
+            rendered = rendered.replace('<!-- SERVER_PRODUCTS -->', productsHtml);
             rendered = rendered.replace('<!-- SERVER_RENDERED_FLAG -->', '<script>window.SERVER_RENDERED=true;</script>');
             res.setHeader('Content-Type', 'text/html; charset=utf-8');
             res.send(rendered);
