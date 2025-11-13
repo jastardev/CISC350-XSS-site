@@ -111,7 +111,7 @@ app.post('/auth/login', async (req, res) => {
 
             // Set cookie to make token easy to steal/observe for the lab
             res.cookie(JWT_COOKIE_NAME, token, {
-                httpOnly: true, // deliberate for XSS lab
+                httpOnly: false, // deliberate for XSS lab
                 secure: false,
                 sameSite: 'lax',
                 maxAge: JWT_EXPIRY_SECONDS * 1000
